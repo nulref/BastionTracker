@@ -1,11 +1,11 @@
 {
   "meta": {
     "version": 1,
-    "updatedAt": ""
+    "updatedAt": "2026-06-26T03:42:19.146Z"
   },
-  "bastionName": "",
-  "characterName": "",
-  "level": "",
+  "bastionName": "Test Bastion",
+  "characterName": "Kombucha",
+  "level": "20",
   "basicFacilities": [
     "",
     "",
