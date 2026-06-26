@@ -11,7 +11,7 @@ Static GitHub Pages tracker for a D&D 2024 bastion.
 
 ## Data
 
-GitHub Pages can read `data/bastion.json` directly. The tracker also includes an authenticated GitHub API flow that can commit edits back to that file from the browser.
+GitHub Pages can read `data/bastion.json` directly. The tracker also includes an authenticated GitHub API flow that loads the latest JSON when the page opens and can commit edits back to that file from the browser.
 
 The GitHub sync flow needs a fine-grained personal access token with access to this repository and `Contents` read/write permission. The token is stored only in your browser according to the option selected in `Settings`; it is not saved in the repository.
 
@@ -22,7 +22,7 @@ To update the shared repo data with GitHub sync:
 3. Confirm owner `nulref`, repository `BastionTracker`, choose a branch from the dropdown, and confirm path `data/bastion.json`.
 4. Paste the token and save settings.
 5. Add your GitHub noreply address in `Committer Email` if your account blocks private email exposure.
-6. Use `Load` before editing and `Save` when ready to commit the JSON file.
+6. The tracker loads the latest JSON when opened or refreshed. Use `Load` to refresh manually and `Save` when ready to commit the JSON file.
 
 ## Local Preview
 

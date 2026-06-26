@@ -206,18 +206,32 @@
   }
 
   async function loadInitialState() {
+    setStatus("Loading");
+
+    try {
+      const remote = await fetchLatestGithubJson();
+      state = remote.state;
+      remoteJsonSha = remote.sha;
+      render();
+      cacheLocal("Loaded");
+      return;
+    } catch (error) {
+      setGithubStatus(error.message);
+    }
+
     try {
       repoState = await fetchRepoState();
-      const local = readLocalState();
-      state = local || repoState;
+      state = repoState;
       render();
-      setStatus(local ? "Local autosave" : "Repo JSON loaded");
+      cacheLocal("Loaded");
+      return;
     } catch (error) {
       const local = readLocalState();
       state = local || blankState();
-      render();
-      setStatus(local ? "Local autosave" : "Blank tracker");
     }
+
+    render();
+    setStatus(readLocalState() ? "Local autosave" : "Blank tracker");
   }
 
   async function fetchRepoState() {
@@ -384,11 +398,11 @@
   async function pullFromGitHub() {
     try {
       setStatus("Loading");
-      const remote = await fetchGithubJson();
+      const remote = await fetchLatestGithubJson();
       state = remote.state;
       remoteJsonSha = remote.sha;
       render();
-      saveLocal("Loaded");
+      cacheLocal("Loaded");
     } catch (error) {
       setStatus("Load failed");
       setGithubStatus(error.message);
@@ -466,6 +480,19 @@
       sha: payload.sha,
       state: normalizeState(JSON.parse(fromBase64(payload.content)))
     };
+  }
+
+  async function fetchLatestGithubJson() {
+    const token = getGithubToken();
+
+    try {
+      return await fetchGithubJson(token);
+    } catch (error) {
+      if (!token) {
+        throw error;
+      }
+      return fetchGithubJson();
+    }
   }
 
   async function fetchGithubBranches(config, token) {
@@ -566,6 +593,11 @@
     state.meta.updatedAt = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     setStatus(message || "Saved locally");
+  }
+
+  function cacheLocal(message) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setStatus(message || "Cached locally");
   }
 
   function render() {
