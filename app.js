@@ -3,19 +3,37 @@
 
   const DATA_URL = "data/bastion.json";
   const STORAGE_KEY = "bastion-tracker:v1";
+  const GITHUB_CONFIG_KEY = "bastion-tracker:github-config:v1";
+  const GITHUB_TOKEN_SESSION_KEY = "bastion-tracker:github-token:session";
+  const GITHUB_TOKEN_LOCAL_KEY = "bastion-tracker:github-token:local";
+  const GITHUB_API_VERSION = "2022-11-28";
   const FACILITY_COUNT = 6;
   const BASIC_COUNT = 12;
+  const DEFAULT_GITHUB_CONFIG = {
+    owner: "nulref",
+    repo: "BastionTracker",
+    branch: "main",
+    path: "data/bastion.json",
+    tokenStorage: "session",
+    committerName: "",
+    committerEmail: ""
+  };
 
   const form = document.getElementById("trackerForm");
   const basicContainer = document.getElementById("basicFacilities");
   const facilityContainer = document.getElementById("specialFacilities");
   const saveState = document.getElementById("saveState");
   const importInput = document.getElementById("jsonImport");
+  const githubDialog = document.getElementById("githubDialog");
+  const githubForm = document.getElementById("githubForm");
+  const githubStatus = document.getElementById("githubStatus");
   const basicTemplate = document.getElementById("basicLineTemplate");
   const facilityTemplate = document.getElementById("facilityTemplate");
 
   let state = blankState();
   let repoState = blankState();
+  let githubConfig = loadGithubConfig();
+  let remoteJsonSha = "";
   let autosaveTimer = 0;
 
   document.addEventListener("DOMContentLoaded", init);
@@ -140,10 +158,16 @@
     });
 
     document.querySelector("[data-action='repo']").addEventListener("click", loadRepoState);
+    document.querySelector("[data-action='github-pull']").addEventListener("click", pullFromGitHub);
+    document.querySelector("[data-action='github-push']").addEventListener("click", pushToGitHub);
+    document.querySelector("[data-action='github-settings']").addEventListener("click", openGithubSettings);
     document.querySelector("[data-action='save']").addEventListener("click", saveLocal);
     document.querySelector("[data-action='export']").addEventListener("click", exportJson);
     document.querySelector("[data-action='import']").addEventListener("click", () => importInput.click());
     document.querySelector("[data-action='print']").addEventListener("click", () => window.print());
+    document.querySelector("[data-action='github-close']").addEventListener("click", closeGithubSettings);
+    document.querySelector("[data-action='github-save-settings']").addEventListener("click", saveGithubSettings);
+    document.querySelector("[data-action='github-disconnect']").addEventListener("click", disconnectGithub);
 
     importInput.addEventListener("change", importJson);
   }
@@ -180,6 +204,238 @@
     } catch (error) {
       setStatus("Repo JSON unavailable");
     }
+  }
+
+  function loadGithubConfig() {
+    try {
+      return normalizeGithubConfig(JSON.parse(localStorage.getItem(GITHUB_CONFIG_KEY) || "{}"));
+    } catch (error) {
+      return normalizeGithubConfig({});
+    }
+  }
+
+  function normalizeGithubConfig(value) {
+    const source = value && typeof value === "object" ? value : {};
+    const tokenStorage = source.tokenStorage === "local" ? "local" : "session";
+
+    return {
+      owner: String(source.owner || DEFAULT_GITHUB_CONFIG.owner),
+      repo: String(source.repo || DEFAULT_GITHUB_CONFIG.repo),
+      branch: String(source.branch || DEFAULT_GITHUB_CONFIG.branch),
+      path: String(source.path || DEFAULT_GITHUB_CONFIG.path),
+      tokenStorage,
+      committerName: String(source.committerName || ""),
+      committerEmail: String(source.committerEmail || "")
+    };
+  }
+
+  function openGithubSettings() {
+    renderGithubSettings();
+    setGithubStatus(getGithubToken() ? "Connected" : "Token needed for push");
+    if (typeof githubDialog.showModal === "function") {
+      githubDialog.showModal();
+    } else {
+      githubDialog.setAttribute("open", "");
+    }
+  }
+
+  function closeGithubSettings() {
+    if (typeof githubDialog.close === "function") {
+      githubDialog.close();
+    } else {
+      githubDialog.removeAttribute("open");
+    }
+  }
+
+  function renderGithubSettings() {
+    githubForm.elements.owner.value = githubConfig.owner;
+    githubForm.elements.repo.value = githubConfig.repo;
+    githubForm.elements.branch.value = githubConfig.branch;
+    githubForm.elements.path.value = githubConfig.path;
+    githubForm.elements.token.value = getGithubToken();
+    githubForm.elements.tokenStorage.value = githubConfig.tokenStorage;
+    githubForm.elements.committerName.value = githubConfig.committerName;
+    githubForm.elements.committerEmail.value = githubConfig.committerEmail;
+  }
+
+  function saveGithubSettings() {
+    const formData = new FormData(githubForm);
+    githubConfig = normalizeGithubConfig({
+      owner: formData.get("owner"),
+      repo: formData.get("repo"),
+      branch: formData.get("branch"),
+      path: formData.get("path"),
+      tokenStorage: formData.get("tokenStorage"),
+      committerName: formData.get("committerName"),
+      committerEmail: formData.get("committerEmail")
+    });
+
+    const token = String(formData.get("token") || "").trim();
+    localStorage.setItem(GITHUB_CONFIG_KEY, JSON.stringify(githubConfig));
+    saveGithubToken(token, githubConfig.tokenStorage);
+    setGithubStatus(token ? "Settings saved" : "Settings saved without token");
+    setStatus("GitHub settings saved");
+  }
+
+  function disconnectGithub() {
+    remoteJsonSha = "";
+    localStorage.removeItem(GITHUB_CONFIG_KEY);
+    localStorage.removeItem(GITHUB_TOKEN_LOCAL_KEY);
+    sessionStorage.removeItem(GITHUB_TOKEN_SESSION_KEY);
+    githubConfig = normalizeGithubConfig({});
+    renderGithubSettings();
+    setGithubStatus("Disconnected");
+    setStatus("GitHub disconnected");
+  }
+
+  function getGithubToken() {
+    if (githubConfig.tokenStorage === "local") {
+      return localStorage.getItem(GITHUB_TOKEN_LOCAL_KEY) || sessionStorage.getItem(GITHUB_TOKEN_SESSION_KEY) || "";
+    }
+    return sessionStorage.getItem(GITHUB_TOKEN_SESSION_KEY) || localStorage.getItem(GITHUB_TOKEN_LOCAL_KEY) || "";
+  }
+
+  function saveGithubToken(token, storage) {
+    localStorage.removeItem(GITHUB_TOKEN_LOCAL_KEY);
+    sessionStorage.removeItem(GITHUB_TOKEN_SESSION_KEY);
+    if (!token) {
+      return;
+    }
+    if (storage === "local") {
+      localStorage.setItem(GITHUB_TOKEN_LOCAL_KEY, token);
+    } else {
+      sessionStorage.setItem(GITHUB_TOKEN_SESSION_KEY, token);
+    }
+  }
+
+  async function pullFromGitHub() {
+    try {
+      setStatus("Pulling GitHub");
+      const remote = await fetchGithubJson();
+      state = remote.state;
+      remoteJsonSha = remote.sha;
+      render();
+      saveLocal("GitHub pulled");
+    } catch (error) {
+      setStatus("GitHub pull failed");
+      setGithubStatus(error.message);
+      openGithubSettings();
+    }
+  }
+
+  async function pushToGitHub() {
+    const token = getGithubToken();
+    if (!token) {
+      setStatus("GitHub token needed");
+      openGithubSettings();
+      return;
+    }
+
+    try {
+      setStatus("Saving to GitHub");
+      const remote = await fetchGithubJson(token);
+      remoteJsonSha = remote.sha;
+
+      const nextState = normalizeState(state);
+      nextState.meta.updatedAt = new Date().toISOString();
+
+      const body = {
+        message: buildCommitMessage(nextState),
+        content: toBase64(`${JSON.stringify(nextState, null, 2)}\n`),
+        sha: remoteJsonSha,
+        branch: githubConfig.branch
+      };
+
+      if (githubConfig.committerName && githubConfig.committerEmail) {
+        body.committer = {
+          name: githubConfig.committerName,
+          email: githubConfig.committerEmail
+        };
+      }
+
+      const response = await fetch(githubContentsUrl(), {
+        method: "PUT",
+        headers: githubHeaders(token),
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        throw await githubRequestError(response);
+      }
+
+      const payload = await response.json();
+      remoteJsonSha = payload.content && payload.content.sha ? payload.content.sha : "";
+      state = nextState;
+      saveLocal("Saved to GitHub");
+      setGithubStatus("GitHub saved");
+    } catch (error) {
+      setStatus("GitHub push failed");
+      setGithubStatus(error.message);
+      openGithubSettings();
+    }
+  }
+
+  async function fetchGithubJson(token) {
+    const response = await fetch(`${githubContentsUrl()}?ref=${encodeURIComponent(githubConfig.branch)}`, {
+      headers: githubHeaders(token)
+    });
+
+    if (!response.ok) {
+      throw await githubRequestError(response);
+    }
+
+    const payload = await response.json();
+    if (!payload.content || !payload.sha) {
+      throw new Error("GitHub file response was incomplete.");
+    }
+
+    return {
+      sha: payload.sha,
+      state: normalizeState(JSON.parse(fromBase64(payload.content)))
+    };
+  }
+
+  function githubContentsUrl() {
+    return `https://api.github.com/repos/${encodeURIComponent(githubConfig.owner)}/${encodeURIComponent(githubConfig.repo)}/contents/${encodeGithubPath(githubConfig.path)}`;
+  }
+
+  function githubHeaders(token) {
+    const headers = {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": GITHUB_API_VERSION
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
+  async function githubRequestError(response) {
+    try {
+      const payload = await response.json();
+      return new Error(payload.message || `GitHub returned ${response.status}.`);
+    } catch (error) {
+      return new Error(`GitHub returned ${response.status}.`);
+    }
+  }
+
+  function encodeGithubPath(path) {
+    return String(path)
+      .split("/")
+      .filter(Boolean)
+      .map((part) => encodeURIComponent(part))
+      .join("/");
+  }
+
+  function buildCommitMessage(nextState) {
+    const label = nextState.bastionName || nextState.characterName || "bastion tracker";
+    return `Update ${label}`;
+  }
+
+  function setGithubStatus(message) {
+    githubStatus.value = message;
   }
 
   function readLocalState() {
@@ -277,5 +533,22 @@
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .slice(0, 48) || "bastion";
+  }
+
+  function toBase64(text) {
+    const bytes = new TextEncoder().encode(text);
+    let binary = "";
+
+    for (let index = 0; index < bytes.length; index += 0x8000) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(index, index + 0x8000));
+    }
+
+    return btoa(binary);
+  }
+
+  function fromBase64(value) {
+    const binary = atob(String(value).replace(/\s/g, ""));
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
   }
 }());

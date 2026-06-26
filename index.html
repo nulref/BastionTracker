@@ -14,6 +14,9 @@
       </div>
       <div class="toolbar" aria-label="Tracker actions">
         <button type="button" data-action="repo">Repo JSON</button>
+        <button type="button" data-action="github-pull">Pull GitHub</button>
+        <button type="button" data-action="github-push">Push GitHub</button>
+        <button type="button" data-action="github-settings">GitHub Settings</button>
         <button type="button" data-action="save">Save</button>
         <button type="button" data-action="export">Export JSON</button>
         <button type="button" data-action="import">Import JSON</button>
@@ -95,6 +98,59 @@
         </div>
       </article>
     </template>
+
+    <dialog class="sync-dialog" id="githubDialog" aria-labelledby="githubDialogTitle">
+      <form class="sync-form" id="githubForm" method="dialog">
+        <div class="sync-form__header">
+          <h2 id="githubDialogTitle">GitHub Sync</h2>
+          <button type="button" data-action="github-close" aria-label="Close GitHub settings">Close</button>
+        </div>
+
+        <div class="sync-form__grid">
+          <label>
+            <span>Owner</span>
+            <input type="text" name="owner" autocomplete="off">
+          </label>
+          <label>
+            <span>Repository</span>
+            <input type="text" name="repo" autocomplete="off">
+          </label>
+          <label>
+            <span>Branch</span>
+            <input type="text" name="branch" autocomplete="off">
+          </label>
+          <label>
+            <span>JSON Path</span>
+            <input type="text" name="path" autocomplete="off">
+          </label>
+          <label class="sync-form__wide">
+            <span>Fine-Grained Token</span>
+            <input type="password" name="token" autocomplete="off">
+          </label>
+          <label>
+            <span>Token Storage</span>
+            <select name="tokenStorage">
+              <option value="session">This tab</option>
+              <option value="local">This browser</option>
+            </select>
+          </label>
+          <label>
+            <span>Committer Name</span>
+            <input type="text" name="committerName" autocomplete="name">
+          </label>
+          <label class="sync-form__wide">
+            <span>Committer Email</span>
+            <input type="email" name="committerEmail" autocomplete="email">
+          </label>
+        </div>
+
+        <div class="sync-form__actions">
+          <button type="button" data-action="github-save-settings">Save Settings</button>
+          <button type="button" data-action="github-disconnect">Disconnect</button>
+          <output id="githubStatus" aria-live="polite"></output>
+        </div>
+      </form>
+    </dialog>
 
     <script src="app.js" defer></script>
   </body>
