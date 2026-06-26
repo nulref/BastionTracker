@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "version": 1,
+    "updatedAt": ""
+  },
+  "bastionName": "",
+  "characterName": "",
+  "level": "",
+  "basicFacilities": [
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "bastionDefenders": "",
+  "specialFacilities": [
+    {
+      "name": "",
+      "space": "",
+      "order": "",
+      "hirelings": "",
+      "notes": ""
+    },
+    {
+      "name": "",
+      "space": "",
+      "order": "",
+      "hirelings": "",
+      "notes": ""
+    },
+    {
+      "name": "",
+      "space": "",
+      "order": "",
+      "hirelings": "",
+      "notes": ""
+    },
+    {
+      "name": "",
+      "space": "",
+      "order": "",
+      "hirelings": "",
+      "notes": ""
+    },
+    {
+      "name": "",
+      "space": "",
+      "order": "",
+      "hirelings": "",
+      "notes": ""
+    },
+    {
+      "name": "",
+      "space": "",
+      "order": "",
+      "hirelings": "",
+      "notes": ""
+    }
+  ]
+}

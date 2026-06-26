@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bastion Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="app-bar">
+      <div class="app-bar__title">
+        <span class="mark" aria-hidden="true"></span>
+        <span>Bastion Tracker</span>
+      </div>
+      <div class="toolbar" aria-label="Tracker actions">
+        <button type="button" data-action="repo">Repo JSON</button>
+        <button type="button" data-action="save">Save</button>
+        <button type="button" data-action="export">Export JSON</button>
+        <button type="button" data-action="import">Import JSON</button>
+        <button type="button" data-action="print">Print</button>
+        <input class="visually-hidden" type="file" id="jsonImport" accept="application/json,.json">
+      </div>
+      <output class="save-state" id="saveState" aria-live="polite">Loading</output>
+    </header>
+
+    <main class="page-shell">
+      <form id="trackerForm" class="tracker" autocomplete="off">
+        <section class="tracker-heading" aria-labelledby="trackerTitle">
+          <div class="title-frame">
+            <h1 id="trackerTitle">Bastion Tracker</h1>
+          </div>
+
+          <label class="field field--wide">
+            <span>Bastion's Name:</span>
+            <input type="text" data-field="bastionName" aria-label="Bastion name">
+          </label>
+
+          <div class="identity-row">
+            <label class="field">
+              <span>Character's Name:</span>
+              <input type="text" data-field="characterName" aria-label="Character name">
+            </label>
+            <label class="field field--level">
+              <span>Level:</span>
+              <input type="text" inputmode="numeric" data-field="level" aria-label="Character level">
+            </label>
+          </div>
+        </section>
+
+        <section class="basic-section" aria-labelledby="basicTitle">
+          <div class="section-ribbon">
+            <h2 id="basicTitle">Basic Facilities</h2>
+          </div>
+          <div class="basic-grid" id="basicFacilities"></div>
+          <label class="field defenders-field">
+            <span>Bastion Defenders:</span>
+            <input type="text" data-field="bastionDefenders" aria-label="Bastion defenders">
+          </label>
+        </section>
+
+        <section class="facility-grid" id="specialFacilities" aria-label="Special facilities"></section>
+      </form>
+    </main>
+
+    <template id="basicLineTemplate">
+      <label class="line-field">
+        <span class="visually-hidden"></span>
+        <input type="text">
+      </label>
+    </template>
+
+    <template id="facilityTemplate">
+      <article class="facility-card">
+        <label class="facility-name">
+          <span>Special Facility:</span>
+          <input type="text">
+        </label>
+        <div class="facility-card__body">
+          <label class="compact-field compact-field--space">
+            <span>Space:</span>
+            <input type="text">
+          </label>
+          <label class="compact-field compact-field--order">
+            <span>Order:</span>
+            <input type="text">
+          </label>
+          <label class="compact-field compact-field--hirelings">
+            <span>Hirelings:</span>
+            <input type="text">
+          </label>
+          <label class="notes-field">
+            <span>Notes</span>
+            <textarea rows="5"></textarea>
+          </label>
+        </div>
+      </article>
+    </template>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
