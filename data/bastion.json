@@ -1,9 +1,9 @@
 {
   "meta": {
     "version": 1,
-    "updatedAt": "2026-06-26T04:23:27.743Z"
+    "updatedAt": "2026-06-26T04:24:10.398Z"
   },
-  "bastionName": "Test Bastion",
+  "bastionName": "Shroom Shack",
   "characterName": "Kombucha",
   "level": "20",
   "basicFacilities": [
