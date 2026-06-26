@@ -23,7 +23,8 @@
   const basicContainer = document.getElementById("basicFacilities");
   const facilityContainer = document.getElementById("specialFacilities");
   const saveState = document.getElementById("saveState");
-  const importInput = document.getElementById("jsonImport");
+  const menuButton = document.querySelector("[data-action='menu-toggle']");
+  const actionMenu = document.getElementById("actionMenu");
   const githubDialog = document.getElementById("githubDialog");
   const githubForm = document.getElementById("githubForm");
   const githubStatus = document.getElementById("githubStatus");
@@ -157,20 +158,51 @@
       scheduleAutosave();
     });
 
-    document.querySelector("[data-action='repo']").addEventListener("click", loadRepoState);
+    menuButton.addEventListener("click", toggleActionMenu);
+    document.addEventListener("click", closeMenuOnOutsideClick);
+    document.addEventListener("keydown", closeMenuOnEscape);
+    actionMenu.addEventListener("click", closeMenuAfterAction);
     document.querySelector("[data-action='github-pull']").addEventListener("click", pullFromGitHub);
     document.querySelector("[data-action='github-push']").addEventListener("click", pushToGitHub);
     document.querySelector("[data-action='github-settings']").addEventListener("click", openGithubSettings);
-    document.querySelector("[data-action='save']").addEventListener("click", saveLocal);
-    document.querySelector("[data-action='export']").addEventListener("click", exportJson);
-    document.querySelector("[data-action='import']").addEventListener("click", () => importInput.click());
     document.querySelector("[data-action='print']").addEventListener("click", () => window.print());
     document.querySelector("[data-action='github-close']").addEventListener("click", closeGithubSettings);
     document.querySelector("[data-action='github-save-settings']").addEventListener("click", saveGithubSettings);
     document.querySelector("[data-action='github-disconnect']").addEventListener("click", disconnectGithub);
     document.querySelector("[data-action='github-refresh-branches']").addEventListener("click", refreshGithubBranches);
+  }
 
-    importInput.addEventListener("change", importJson);
+  function toggleActionMenu() {
+    const isOpen = !actionMenu.hidden;
+    setActionMenuOpen(!isOpen);
+  }
+
+  function setActionMenuOpen(isOpen) {
+    actionMenu.hidden = !isOpen;
+    menuButton.setAttribute("aria-expanded", String(isOpen));
+  }
+
+  function closeMenuOnOutsideClick(event) {
+    if (actionMenu.hidden || event.target.closest(".toolbar")) {
+      return;
+    }
+
+    setActionMenuOpen(false);
+  }
+
+  function closeMenuOnEscape(event) {
+    if (event.key !== "Escape" || actionMenu.hidden) {
+      return;
+    }
+
+    setActionMenuOpen(false);
+    menuButton.focus();
+  }
+
+  function closeMenuAfterAction(event) {
+    if (event.target.closest("[role='menuitem']")) {
+      setActionMenuOpen(false);
+    }
   }
 
   async function loadInitialState() {
@@ -194,17 +226,6 @@
       throw new Error(`Could not load ${DATA_URL}`);
     }
     return normalizeState(await response.json());
-  }
-
-  async function loadRepoState() {
-    try {
-      repoState = await fetchRepoState();
-      state = normalizeState(repoState);
-      render();
-      saveLocal("Repo JSON loaded");
-    } catch (error) {
-      setStatus("Repo JSON unavailable");
-    }
   }
 
   function loadGithubConfig() {
@@ -362,14 +383,14 @@
 
   async function pullFromGitHub() {
     try {
-      setStatus("Pulling GitHub");
+      setStatus("Loading");
       const remote = await fetchGithubJson();
       state = remote.state;
       remoteJsonSha = remote.sha;
       render();
-      saveLocal("GitHub pulled");
+      saveLocal("Loaded");
     } catch (error) {
-      setStatus("GitHub pull failed");
+      setStatus("Load failed");
       setGithubStatus(error.message);
       openGithubSettings();
     }
@@ -384,7 +405,7 @@
     }
 
     try {
-      setStatus("Saving to GitHub");
+      setStatus("Saving");
       const remote = await fetchGithubJson(token);
       remoteJsonSha = remote.sha;
 
@@ -418,10 +439,10 @@
       const payload = await response.json();
       remoteJsonSha = payload.content && payload.content.sha ? payload.content.sha : "";
       state = nextState;
-      saveLocal("Saved to GitHub");
-      setGithubStatus("GitHub saved");
+      saveLocal("Saved");
+      setGithubStatus("Saved");
     } catch (error) {
-      setStatus("GitHub push failed");
+      setStatus("Save failed");
       setGithubStatus(error.message);
       openGithubSettings();
     }
@@ -547,47 +568,6 @@
     setStatus(message || "Saved locally");
   }
 
-  function exportJson() {
-    const exportState = normalizeState(state);
-    exportState.meta.updatedAt = new Date().toISOString();
-
-    const blob = new Blob([JSON.stringify(exportState, null, 2)], {
-      type: "application/json"
-    });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    const baseName = slugify(exportState.bastionName || exportState.characterName || "bastion");
-
-    anchor.href = url;
-    anchor.download = `${baseName}-tracker.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
-    setStatus("JSON exported");
-  }
-
-  function importJson() {
-    const file = importInput.files && importInput.files[0];
-    if (!file) {
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      try {
-        state = normalizeState(JSON.parse(String(reader.result || "{}")));
-        render();
-        saveLocal("JSON imported");
-      } catch (error) {
-        setStatus("Import failed");
-      } finally {
-        importInput.value = "";
-      }
-    });
-    reader.readAsText(file);
-  }
-
   function render() {
     document.querySelectorAll("[data-field]").forEach((field) => {
       field.value = getByPath(state, field.dataset.field);
@@ -612,15 +592,6 @@
 
   function setStatus(message) {
     saveState.value = message;
-  }
-
-  function slugify(value) {
-    return String(value)
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 48) || "bastion";
   }
 
   function toBase64(text) {

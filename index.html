@@ -12,16 +12,16 @@
         <span class="mark" aria-hidden="true"></span>
         <span>Bastion Tracker</span>
       </div>
-      <div class="toolbar" aria-label="Tracker actions">
-        <button type="button" data-action="repo">Repo JSON</button>
-        <button type="button" data-action="github-pull">Pull GitHub</button>
-        <button type="button" data-action="github-push">Push GitHub</button>
-        <button type="button" data-action="github-settings">GitHub Settings</button>
-        <button type="button" data-action="save">Save</button>
-        <button type="button" data-action="export">Export JSON</button>
-        <button type="button" data-action="import">Import JSON</button>
-        <button type="button" data-action="print">Print</button>
-        <input class="visually-hidden" type="file" id="jsonImport" accept="application/json,.json">
+      <div class="toolbar" aria-label="Tracker menu">
+        <button class="menu-trigger" type="button" aria-label="Open menu" aria-controls="actionMenu" aria-expanded="false" data-action="menu-toggle">
+          <span aria-hidden="true">&#8942;</span>
+        </button>
+        <div class="action-menu" id="actionMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-action="github-pull">Load</button>
+          <button type="button" role="menuitem" data-action="github-push">Save</button>
+          <button type="button" role="menuitem" data-action="github-settings">Settings</button>
+          <button type="button" role="menuitem" data-action="print">Print</button>
+        </div>
       </div>
       <output class="save-state" id="saveState" aria-live="polite">Loading</output>
     </header>
