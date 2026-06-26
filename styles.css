@@ -62,7 +62,8 @@ button:focus-visible {
 
 button:focus-visible,
 input:focus-visible,
-textarea:focus-visible {
+textarea:focus-visible,
+select:focus-visible {
   outline: 2px solid var(--teal);
   outline-offset: 2px;
 }
@@ -442,6 +443,18 @@ textarea {
   grid-column: 1 / -1;
 }
 
+.branch-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: end;
+  min-width: 0;
+}
+
+.branch-picker button {
+  margin-bottom: 0.05rem;
+}
+
 .sync-form__actions output {
   flex: 1 1 12rem;
   color: var(--muted-ink);
@@ -492,6 +505,10 @@ textarea {
   }
 
   .sync-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .branch-picker {
     grid-template-columns: 1fr;
   }
 

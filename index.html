@@ -115,10 +115,15 @@
             <span>Repository</span>
             <input type="text" name="repo" autocomplete="off">
           </label>
-          <label>
-            <span>Branch</span>
-            <input type="text" name="branch" autocomplete="off">
-          </label>
+          <div class="branch-picker">
+            <label>
+              <span>Branch</span>
+              <select name="branch" autocomplete="off">
+                <option value="main">main</option>
+              </select>
+            </label>
+            <button type="button" data-action="github-refresh-branches">Refresh Branches</button>
+          </div>
           <label>
             <span>JSON Path</span>
             <input type="text" name="path" autocomplete="off">

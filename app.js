@@ -168,6 +168,7 @@
     document.querySelector("[data-action='github-close']").addEventListener("click", closeGithubSettings);
     document.querySelector("[data-action='github-save-settings']").addEventListener("click", saveGithubSettings);
     document.querySelector("[data-action='github-disconnect']").addEventListener("click", disconnectGithub);
+    document.querySelector("[data-action='github-refresh-branches']").addEventListener("click", refreshGithubBranches);
 
     importInput.addEventListener("change", importJson);
   }
@@ -237,6 +238,7 @@
     } else {
       githubDialog.setAttribute("open", "");
     }
+    refreshGithubBranches();
   }
 
   function closeGithubSettings() {
@@ -250,7 +252,7 @@
   function renderGithubSettings() {
     githubForm.elements.owner.value = githubConfig.owner;
     githubForm.elements.repo.value = githubConfig.repo;
-    githubForm.elements.branch.value = githubConfig.branch;
+    setBranchOptions([githubConfig.branch], githubConfig.branch);
     githubForm.elements.path.value = githubConfig.path;
     githubForm.elements.token.value = getGithubToken();
     githubForm.elements.tokenStorage.value = githubConfig.tokenStorage;
@@ -286,6 +288,56 @@
     renderGithubSettings();
     setGithubStatus("Disconnected");
     setStatus("GitHub disconnected");
+  }
+
+  async function refreshGithubBranches() {
+    const config = currentGithubFormConfig();
+    const token = currentGithubFormToken();
+
+    try {
+      setGithubStatus("Loading branches");
+      const branches = await fetchGithubBranches(config, token);
+      setBranchOptions(branches, config.branch);
+      setGithubStatus(`${branches.length} branch${branches.length === 1 ? "" : "es"} loaded`);
+    } catch (error) {
+      setBranchOptions([config.branch], config.branch);
+      setGithubStatus(error.message);
+    }
+  }
+
+  function currentGithubFormConfig() {
+    return normalizeGithubConfig({
+      owner: githubForm.elements.owner.value,
+      repo: githubForm.elements.repo.value,
+      branch: githubForm.elements.branch.value,
+      path: githubForm.elements.path.value,
+      tokenStorage: githubForm.elements.tokenStorage.value,
+      committerName: githubForm.elements.committerName.value,
+      committerEmail: githubForm.elements.committerEmail.value
+    });
+  }
+
+  function currentGithubFormToken() {
+    return String(githubForm.elements.token.value || getGithubToken()).trim();
+  }
+
+  function setBranchOptions(branches, selectedBranch) {
+    const select = githubForm.elements.branch;
+    const names = Array.from(new Set(branches.filter(Boolean)));
+
+    if (selectedBranch && !names.includes(selectedBranch)) {
+      names.unshift(selectedBranch);
+    }
+
+    select.innerHTML = "";
+    names.forEach((name) => {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      select.appendChild(option);
+    });
+
+    select.value = selectedBranch || names[0] || DEFAULT_GITHUB_CONFIG.branch;
   }
 
   function getGithubToken() {
@@ -395,8 +447,44 @@
     };
   }
 
+  async function fetchGithubBranches(config, token) {
+    const branches = [];
+    let page = 1;
+    let hasNextPage = true;
+
+    while (hasNextPage && page <= 10) {
+      const response = await fetch(githubBranchesUrl(config, page), {
+        headers: githubHeaders(token)
+      });
+
+      if (!response.ok) {
+        throw await githubRequestError(response);
+      }
+
+      const payload = await response.json();
+      payload.forEach((branch) => {
+        if (branch && branch.name) {
+          branches.push(String(branch.name));
+        }
+      });
+
+      hasNextPage = (response.headers.get("Link") || "").includes('rel="next"');
+      page += 1;
+    }
+
+    if (!branches.length) {
+      throw new Error("No branches found.");
+    }
+
+    return branches;
+  }
+
   function githubContentsUrl() {
     return `https://api.github.com/repos/${encodeURIComponent(githubConfig.owner)}/${encodeURIComponent(githubConfig.repo)}/contents/${encodeGithubPath(githubConfig.path)}`;
+  }
+
+  function githubBranchesUrl(config, page) {
+    return `https://api.github.com/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/branches?per_page=100&page=${page}`;
   }
 
   function githubHeaders(token) {

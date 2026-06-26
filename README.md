@@ -26,7 +26,7 @@ To update the shared repo data with GitHub sync:
 
 1. Create a fine-grained token for this repo with `Contents` read/write permission.
 2. Open `GitHub Settings`.
-3. Confirm owner `nulref`, repository `BastionTracker`, branch `main`, and path `data/bastion.json`.
+3. Confirm owner `nulref`, repository `BastionTracker`, choose a branch from the dropdown, and confirm path `data/bastion.json`.
 4. Paste the token and save settings.
 5. Add your GitHub noreply address in `Committer Email` if your account blocks private email exposure.
 6. Use `Pull GitHub` before editing and `Push GitHub` when ready to commit the JSON file.
